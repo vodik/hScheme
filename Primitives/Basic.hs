@@ -13,14 +13,23 @@ primitives = [("+",         numericBinop  (+)),
               ("mod",       numericBinop  mod),
               ("quotient",  numericBinop  quot),
               ("remaider",  numericBinop  rem),
+
+              ("symbol?",   unaryOp       isAtom),
+              ("string?",   unaryOp       isString),
+              ("number?",   unaryOp       isNumber),
+              ("bool?",     unaryOp       isBool),
+              ("list?",     unaryOp       isList),
+
               ("=",         numBoolBinop  (==)),
               ("<",         numBoolBinop  (<)),
               (">",         numBoolBinop  (>)),
               ("/=",        numBoolBinop  (/=)),
               (">=",        numBoolBinop  (>=)),
               ("<=",        numBoolBinop  (<=)),
+
               ("&&",        boolBoolBinop (&&)),
               ("||",        boolBoolBinop (||)),
+
               ("string=?",  strBoolBinop  (==)),
               ("string<?",  strBoolBinop  (<)),
               ("string>?",  strBoolBinop  (>)),
@@ -31,12 +40,36 @@ numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError Lisp
 numericBinop op singleVal@[_] = throwError $ NumArgs 2 singleVal
 numericBinop op params = mapM unpackNum params >>= return . Number . foldl1 op
 
+unaryOp :: (LispVal -> LispVal) -> [LispVal] -> ThrowsError LispVal
+unaryOp op [arg]  = return $ op arg
+unaryOp _ badArgs = throwError $ NumArgs 2 badArgs
+
+isAtom :: LispVal -> LispVal
+isAtom (Atom _) = Bool True
+isAtom _        = Bool False
+
+isString :: LispVal -> LispVal
+isString (String _) = Bool True
+isString _          = Bool False
+
+isNumber :: LispVal -> LispVal
+isNumber (Number _) = Bool True
+isNumber _          = Bool False
+
+isBool :: LispVal -> LispVal
+isBool (Bool _) = Bool True
+isBool _        = Bool False
+
+isList :: LispVal -> LispVal
+isList (List _)         = Bool True
+isList (DottedList _ _) = Bool True
+isList _                = Bool False
+
 boolBinop :: (LispVal -> ThrowsError a) -> (a -> a -> Bool) -> [LispVal] -> ThrowsError LispVal
-boolBinop unpacker op args = if length args /= 2
-                             then throwError $ NumArgs 2 args
-                             else do left <- unpacker $ args !! 0
-                                     right <- unpacker $ args !! 1
-                                     return $ Bool $ left `op` right
+boolBinop unpacker op [l, r] = do left <- unpacker l
+                                  right <- unpacker r
+                                  return $ Bool $ left `op` right
+boolBinop _ _ badArgs        = throwError $ NumArgs 2 badArgs
 
 numBoolBinop :: (Integer -> Integer -> Bool) -> [LispVal] -> ThrowsError LispVal
 numBoolBinop = boolBinop unpackNum
