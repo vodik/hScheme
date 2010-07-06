@@ -20,4 +20,7 @@ runOne args = do
     (runIOThrows $ liftM show $ eval env (List [Atom "load", String (args !! 0)])) >>= hPutStrLn stderr
 
 runRepl :: IO ()
-runRepl = primitiveBindings >>= until_ (== "quit") (readPrompt ">>> ") . evalAndPrint
+runRepl = do
+    env <- primitiveBindings
+    runIOThrows_ $ eval env (List [Atom "load", String "stdlib.scm"])
+    until_ (== "quit") (readPrompt ">>> ") (evalAndPrint env)

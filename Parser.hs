@@ -13,14 +13,24 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 spaces :: Parser ()
 spaces = skipMany1 space
 
-parseString, parseAtom, parseNumber :: Parser LispVal
+escapedChars :: Parser Char
+escapedChars = do char '\\'
+                  x <- oneOf "\\\"nrt"
+                  return $ case x of
+                                '\\' -> x
+                                '"'  -> x
+                                'n'  -> '\n'
+                                'r'  -> '\r'
+                                't'  -> '\t'
 
+parseString :: Parser LispVal
 parseString = do char '"'
-                 x <- many $ noneOf "\""
+                 x <- many $ escapedChars <|> noneOf "\""
                  char '"'
                  return $ String x
 
 
+parseAtom :: Parser LispVal
 parseAtom = do first <- letter <|> symbol
                rest <- many $ letter <|> digit <|> symbol
                let atom = first : rest
@@ -29,6 +39,7 @@ parseAtom = do first <- letter <|> symbol
                              "#f" -> Bool False
                              _    -> Atom atom
 
+parseNumber :: Parser LispVal
 parseNumber = liftM (Number . read) $ many1 digit
 
 parseList :: Parser LispVal

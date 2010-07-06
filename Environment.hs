@@ -24,6 +24,7 @@ module Environment (LispVal(Atom,
                    IOThrowsError,
                    liftThrows,
                    runIOThrows,
+                   runIOThrows_,
                    nullEnv,
                    isBound,
                    getVar,
@@ -114,6 +115,9 @@ liftThrows (Right val) = return val
 
 runIOThrows :: IOThrowsError String -> IO String
 runIOThrows action = runErrorT (trapError action) >>= return . extractValue
+
+runIOThrows_ :: IOThrowsError LispVal -> IO ()
+runIOThrows_ action = runErrorT action >> return ()
 
 nullEnv :: IO Env
 nullEnv = newIORef []
