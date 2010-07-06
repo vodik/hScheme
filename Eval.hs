@@ -49,6 +49,22 @@ eval env (List [Atom "define", Atom var, form]) =
 eval env (List [Atom "load", String filename]) =
     load filename >>= liftM last . mapM (eval env)
 
+eval env (List (Atom "cond" : expr : rest)) = do
+    eval' expr rest
+    where eval' (List [cond, value]) (x : xs) = do
+              result <- eval env cond
+              case result of
+                   Bool False -> eval' x xs
+                   Bool True  -> eval env value
+                   otherwise  -> throwError $ TypeMismatch "boolean" cond
+          eval' (List [Atom "else", value]) [] = do
+               eval env value
+          eval' (List [cond, value]) [] = do
+              result <- eval env cond
+              case result of
+                   Bool True  -> eval env value
+                   otherwise  -> throwError $ TypeMismatch "boolean" cond
+
 eval env (List (Atom "define" : List (Atom var : params) : body)) =
     makeNormalFunc env params body >>= defineVar env var
 
