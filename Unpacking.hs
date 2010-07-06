@@ -27,10 +27,11 @@ unpackNum (List [n]) = unpackNum n
 unpackNum notNum     = throwError $ TypeMismatch "number" notNum
 
 unpackStr :: LispVal -> ThrowsError String
-unpackStr (String s) = return s
-unpackStr (Number s) = return $ show s
-unpackStr (Bool s)   = return $ show s
-unpackStr notStr     = throwError $ TypeMismatch "string" notStr
+unpackStr (String s)    = return s
+unpackStr (Number s)    = return $ show s
+unpackStr (Bool s)      = return $ show s
+unpackStr (Character s) = return [s]
+unpackStr notStr        = throwError $ TypeMismatch "string" notStr
 
 unpackBool :: LispVal -> ThrowsError Bool
 unpackBool (Bool b) = return b

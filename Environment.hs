@@ -4,6 +4,7 @@ module Environment (LispVal(Atom,
                            Number,
                            String,
                            Bool,
+                           Character,
                            PrimitiveFunc,
                            Port,
                            IOFunc,
@@ -43,6 +44,7 @@ data LispVal = Atom String
              | Number Integer
              | String String
              | Bool Bool
+             | Character Char
              | PrimitiveFunc ([LispVal] -> ThrowsError LispVal)
              | Port Handle
              | IOFunc ([LispVal] -> IOThrowsError LispVal)
@@ -62,6 +64,7 @@ showLispVal (Atom name)            = name
 showLispVal (Number value)         = show value
 showLispVal (Bool True)            = "#t"
 showLispVal (Bool False)           = "#f"
+showLispVal (Character char)       = [char]
 showLispVal (List contents)        = "(" ++ unwordsLispList contents ++ ")"
 showLispVal (DottedList head tail) = "(" ++ unwordsLispList head ++ " . " ++ showLispVal tail ++ ")"
 showLispVal (PrimitiveFunc _)      = "<primitive>"
