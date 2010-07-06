@@ -19,8 +19,8 @@ unpackEquals arg1 arg2 (AnyUnpacker unpacker) = catchError (do
 
 unpackNum :: LispVal -> ThrowsError Integer
 unpackNum (Number n) = return n
-unpackNum (String n) = let parsed = reads n in
-                          if null parsed
+unpackNum (String n) = let parsed = reads n
+                       in if null parsed
                              then throwError $ TypeMismatch "number" $ String n
                              else return $ fst $ parsed !! 0
 unpackNum (List [n]) = unpackNum n

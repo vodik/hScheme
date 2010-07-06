@@ -1,13 +1,13 @@
 module Parser (readExpr, readExprList) where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
-import Directory
 import Control.Monad
 import Control.Monad.Error
 import Environment
+import Util
 
 symbol :: Parser Char
-symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
+symbol = oneOf "!$%&|*+-/:<=>?@^_~"
 
 spaces :: Parser ()
 spaces = skipMany1 space
@@ -28,18 +28,35 @@ parseString = do char '"'
                  char '"'
                  return $ String x
 
-
 parseAtom :: Parser LispVal
 parseAtom = do first <- letter <|> symbol
                rest <- many $ letter <|> digit <|> symbol
-               let atom = first : rest
-               return $ case atom of
-                             "#t" -> Bool True
-                             "#f" -> Bool False
-                             _    -> Atom atom
+               return $ Atom $ first : rest
+
+parseDigital :: Parser LispVal
+parseDigital = many1 digit >>= return . Number . read
+
+parseDigital' :: Parser LispVal
+parseDigital' = try $ string "#d" >> many1 digit >>= return . Number . read
+
+parseHex :: Parser LispVal
+parseHex = try $ string "#x" >> many1 hexDigit >>= return . Number . hex2dig
+
+parseOct :: Parser LispVal
+parseOct = try $ string "#o" >> many1 octDigit >>= return . Number . oct2dig
+
+parseBin :: Parser LispVal
+parseBin = try $ string "#b" >> many1 (oneOf "10") >>= return . Number . bin2dig
 
 parseNumber :: Parser LispVal
-parseNumber = liftM (Number . read) $ many1 digit
+parseNumber = (parseDigital <|> parseDigital' <|> parseHex <|> parseOct <|> parseBin) >>= return
+
+parseBool :: Parser LispVal
+parseBool = do string "#"
+               x <- oneOf "tf"
+               return $ case x of
+                        't' -> Bool True
+                        'f' -> Bool False
 
 parseList :: Parser LispVal
 parseList = liftM List $ sepBy parseExpr spaces
@@ -58,6 +75,7 @@ parseExpr :: Parser LispVal
 parseExpr = parseAtom
         <|> parseString
         <|> parseNumber
+        <|> parseBool
         <|> parseQuoted
         <|> do char '('
                x <- try parseList <|> parseDottedList

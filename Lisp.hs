@@ -9,6 +9,12 @@ import Primitives.Basic
 import Primitives.List
 import Primitives.IO
 
+--newtype Scheme a = Scheme (String -> [(a, String)])
+
+--instance Monad Scheme where
+    --return a = Scheme 
+    --s >>= f  = 
+
 primitiveBindings :: IO Env
 primitiveBindings = nullEnv >>= (flip bindVars $ map (makeFunc PrimitiveFunc) (primitives ++ listPrimitives)
                                               ++ map (makeFunc IOFunc) ioPrimitives)
