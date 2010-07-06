@@ -14,11 +14,14 @@ primitives = [("+",         numericBinop  (+)),
               ("quotient",  numericBinop  quot),
               ("remaider",  numericBinop  rem),
 
-              ("symbol?",   unaryOp       isAtom),
+              ("symbol?",   unaryOp       isSymbol),
               ("string?",   unaryOp       isString),
               ("number?",   unaryOp       isNumber),
               ("bool?",     unaryOp       isBool),
               ("list?",     unaryOp       isList),
+
+              ("symbol->string", unaryOp  stringFromSymbol),
+              ("string->symbol", unaryOp  symbolFromString),
 
               ("=",         numBoolBinop  (==)),
               ("<",         numBoolBinop  (<)),
@@ -44,9 +47,9 @@ unaryOp :: (LispVal -> LispVal) -> [LispVal] -> ThrowsError LispVal
 unaryOp op [arg]  = return $ op arg
 unaryOp _ badArgs = throwError $ NumArgs 2 badArgs
 
-isAtom :: LispVal -> LispVal
-isAtom (Atom _) = Bool True
-isAtom _        = Bool False
+isSymbol :: LispVal -> LispVal
+isSymbol (Atom _) = Bool True
+isSymbol _        = Bool False
 
 isString :: LispVal -> LispVal
 isString (String _) = Bool True
@@ -64,6 +67,14 @@ isList :: LispVal -> LispVal
 isList (List _)         = Bool True
 isList (DottedList _ _) = Bool True
 isList _                = Bool False
+
+symbolFromString :: LispVal -> LispVal
+symbolFromString (String s) = Atom s
+symbolFromString _          = Atom ""
+
+stringFromSymbol :: LispVal -> LispVal
+stringFromSymbol (Atom s) = String s
+stringFromSymbol _        = String ""
 
 boolBinop :: (LispVal -> ThrowsError a) -> (a -> a -> Bool) -> [LispVal] -> ThrowsError LispVal
 boolBinop unpacker op [l, r] = do left <- unpacker l
