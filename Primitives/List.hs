@@ -1,4 +1,4 @@
-module Primitives.List (listPrimitives) where
+module Primitives.List (listPrimitives, eqv) where
 
 import Control.Monad
 import Control.Monad.Error

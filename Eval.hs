@@ -1,10 +1,13 @@
 module Eval (apply, eval, load) where
 
 import IO
+import List
 import Control.Monad
 import Control.Monad.Error
 import Environment
 import Parser
+
+import Primitives.List
 
 apply :: LispVal -> [LispVal] -> IOThrowsError LispVal
 apply (PrimitiveFunc func) args = liftThrows $ func args
@@ -23,6 +26,17 @@ apply (Func params varargs body closure) args =
 makeFunc varargs env params body = return $ Func (map show params) varargs body env
 makeNormalFunc = makeFunc Nothing
 makeVarargs = makeFunc . Just . show
+
+eqv' (Bool arg1) (Bool arg2)     = arg1 == arg2
+eqv' (Number arg1) (Number arg2) = arg1 == arg2
+eqv' (String arg1) (String arg2) = arg1 == arg2
+eqv' (Atom arg1) (Atom arg2)     = arg1 == arg2
+
+eqvLst' :: [LispVal] -> LispVal -> Bool
+eqvLst' (a:as) arg2 = if eqv' a arg2
+                         then True
+                         else eqvLst' as arg2
+eqvLst' [] arg2 = False
 
 eval :: Env -> LispVal -> IOThrowsError LispVal
 eval env val@(String _)     = return val
@@ -49,7 +63,7 @@ eval env (List [Atom "define", Atom var, form]) =
 eval env (List [Atom "load", String filename]) =
     load filename >>= liftM last . mapM (eval env)
 
-eval env (List (Atom "cond" : expr : rest)) = do
+eval env (List (Atom "cond" : expr : rest)) =
     eval' expr rest
     where eval' (List [cond, value]) (x : xs) = do
               result <- eval env cond
@@ -64,6 +78,20 @@ eval env (List (Atom "cond" : expr : rest)) = do
               case result of
                    Bool True  -> eval env value
                    otherwise  -> throwError $ TypeMismatch "boolean" cond
+
+eval env (List (Atom "case" : key : clause : rest)) = do
+    k <- eval env key
+    eval' k clause rest
+    where eval' k (List [(List cond), value]) (x : xs) = do
+              if eqvLst' cond k
+                 then eval env value
+                 else eval' k x xs
+          eval' _ (List [Atom "else", value]) [] = do
+               eval env value
+          eval' k (List [(List cond), value]) [] = do
+              if eqvLst' cond k
+                 then eval env value
+                 else throwError $ TypeMismatch "boolean" value
 
 eval env (List (Atom "define" : List (Atom var : params) : body)) =
     makeNormalFunc env params body >>= defineVar env var
