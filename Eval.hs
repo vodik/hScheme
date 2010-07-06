@@ -1,5 +1,6 @@
-module Eval (apply, eval) where
+module Eval (apply, eval, load) where
 
+import IO
 import Control.Monad
 import Control.Monad.Error
 import Environment
@@ -67,3 +68,10 @@ eval env (List (function : args)) = do
     apply func argVals
 
 eval _ badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
+
+load :: String -> IOThrowsError [LispVal]
+load filename = do body <- liftIO $ try $ readFile filename
+                   case body of
+                        Left err  -> liftThrows $ throwError $ IO err
+                        Right val -> liftThrows $ readExprList val
+

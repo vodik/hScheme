@@ -1,7 +1,6 @@
-module Parser (readExpr, readExprList, load) where
+module Parser (readExpr, readExprList) where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
-import qualified IO
 import Directory
 import Control.Monad
 import Control.Monad.Error
@@ -73,12 +72,6 @@ readOrThrow parser input = case parse parser "lisp" input of
 
 readExpr :: String -> ThrowsError LispVal
 readExpr = readOrThrow parseExpr
-
-load :: String -> IOThrowsError [LispVal]
-load filename = do body <- liftIO $ IO.try $ readFile filename
-                   case body of
-                        Left err  -> liftThrows $ throwError $ IO err
-                        Right val -> liftThrows $ readExprList val
 
 readExprList :: String -> ThrowsError [LispVal]
 readExprList = readOrThrow $ endBy parseExpr spaces
