@@ -6,4 +6,7 @@ import System.Environment
 import Lisp
 
 main :: IO ()
-main = runRepl
+main = do args <- getArgs
+          if null args
+             then runRepl
+             else runOne $ args
