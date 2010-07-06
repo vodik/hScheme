@@ -66,6 +66,11 @@ eval env (List [Atom "define", Atom var, form]) =
 eval env (List [Atom "load", String filename]) =
     load filename >>= liftM last . mapM (eval env)
 
+eval env (List (Atom "begin" : expr : rest)) = do
+    eval' expr rest
+    where eval' expr (x : xs) = eval env expr >> eval' x xs
+          eval' expr []       = eval env expr >>= return
+
 eval env (List (Atom "cond" : expr : rest)) =
     eval' expr rest
     where eval' (List [cond, value]) (x : xs) = do
