@@ -90,4 +90,3 @@ strBoolBinop = boolBinop unpackStr
 
 boolBoolBinop :: (Bool -> Bool -> Bool) -> [LispVal] -> ThrowsError LispVal
 boolBoolBinop = boolBinop unpackBool
-
