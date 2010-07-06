@@ -3,6 +3,7 @@ module Parser (readExpr, readExprList) where
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Numeric
 import Complex
+import Data.Array
 import Control.Monad
 import Control.Monad.Error
 import Environment
@@ -98,10 +99,21 @@ parseDottedList = do head <- endBy parseExpr spaces
                      tail <- char '.' >> spaces >> parseExpr
                      return $ DottedList head tail
 
+makeList :: String -> LispVal -> LispVal
+makeList atom x = List [Atom atom, x]
+
 parseQuoted :: Parser LispVal
-parseQuoted = do char '\''
-                 x <- parseExpr
-                 return $ List [Atom "quote", x]
+parseQuoted = char '\'' >> parseExpr >>= return . makeList "quote"
+
+parseQuasiQuoted :: Parser LispVal
+parseQuasiQuoted = char '`' >> parseExpr >>= return . makeList "quote"
+
+parseUnQuoted :: Parser LispVal
+parseUnQuoted = char ',' >> parseExpr >>= return . makeList "quote"
+
+parseVector :: Parser LispVal
+parseVector = do array <- sepBy parseExpr spaces
+                 return $ Vector (listArray (0,(length array - 1)) array)
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
@@ -112,7 +124,13 @@ parseExpr = parseAtom
         <|> try parseNumber
         <|> try parseBool
         <|> try parseCharacter
+        <|> parseQuasiQuoted
+        <|> parseUnQuoted
         <|> parseQuoted
+        <|> try (do string "#("
+                    x <- parseVector
+                    char ')'
+                    return x)
         <|> do char '('
                x <- try parseList <|> parseDottedList
                char ')'

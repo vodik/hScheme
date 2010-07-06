@@ -1,6 +1,7 @@
 module Environment where
 
 import IO
+import Data.Array
 import Complex
 import Text.ParserCombinators.Parsec
 import Data.IORef
@@ -8,6 +9,7 @@ import Control.Monad.Error
 
 data LispVal = Atom String
              | List [LispVal]
+             | Vector (Array Int LispVal)
              | DottedList [LispVal] LispVal
              | Number Integer
              | Ratio Integer Integer
@@ -48,7 +50,7 @@ showLispVal (IOFunc _)             = "#<IO primitive>"
 showLispVal (Func params varargs _ _) =
     "(lambda (" ++ unwords (map show params) ++
     (case varargs of
-          Nothing   -> ""
+          Nothing     -> ""
           Just params -> " . " ++ params) ++ ") ...)"
 
 data LispError = NumArgs Integer [LispVal]
@@ -121,11 +123,10 @@ defineVar envRef var value = do
     alreadyDefined <- liftIO $ isBound envRef var
     if alreadyDefined
        then setVar envRef var value >> return value
-       else liftIO $ do
-           valueRef <- newIORef value
-           env <- readIORef envRef
-           writeIORef envRef ((var, valueRef):env)
-           return value
+       else liftIO $ do valueRef <- newIORef value
+                        env <- readIORef envRef
+                        writeIORef envRef ((var, valueRef):env)
+                        return value
 
 bindVars :: Env -> [(String, LispVal)] -> IO Env
 bindVars envRef bindings =
