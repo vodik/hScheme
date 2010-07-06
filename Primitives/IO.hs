@@ -33,15 +33,18 @@ closePort [Port port] = liftIO $ hClose port >> (return $ Bool True)
 closePort _           = return $ Bool False
 
 readProc :: [LispVal] -> IOThrowsError LispVal
-readProc [] = readProc [Port stdin]
+readProc []          = readProc [Port stdin]
 readProc [Port port] = (liftIO $ hGetLine port) >>= liftThrows . readExpr
 
 writeProc :: [LispVal] -> IOThrowsError LispVal
-writeProc [obj] = writeProc [obj, Port stdout]
+writeProc [obj]            = writeProc [obj, Port stdout]
 writeProv [obj, Port port] = liftIO $ hPrint port obj >> (return $ Bool True)
 
 readContents :: [LispVal] -> IOThrowsError LispVal
-readContents [String filename] = liftM String $ liftIO $ readFile filename
+readContents [String filename] = do body <- liftIO $ try $ readFile filename
+                                    case body of
+                                         Left err  -> liftThrows $ throwError $ IO err
+                                         Right val -> liftM String $ liftIO $ return val
 
 readAll :: [LispVal] -> IOThrowsError LispVal
 readAll [String filename] = liftM List $ load filename
