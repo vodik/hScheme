@@ -1,6 +1,8 @@
 module Parser (readExpr, readExprList) where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
+import Numeric
+import Complex
 import Control.Monad
 import Control.Monad.Error
 import Environment
@@ -32,6 +34,25 @@ parseAtom :: Parser LispVal
 parseAtom = do first <- letter <|> symbol
                rest <- many $ letter <|> digit <|> symbol
                return $ Atom $ first : rest
+
+parseRatio :: Parser LispVal
+parseRatio = do x <- many1 digit
+                char '/'
+                y <- many1 digit
+                return $ Ratio (read x) (read y)
+
+parseReal :: Parser LispVal
+parseReal = do x <- many1 digit
+               char '.'
+               y <- many1 digit
+               return $ Real $ fst . head $ readFloat $ x ++ "." ++ y
+
+parseComplex :: Parser LispVal
+parseComplex = do x <- (try parseReal <|> parseNumber)
+                  char '+'
+                  y <- (try parseReal <|> parseNumber)
+                  char 'i'
+                  return $ Complex $ toDouble x :+ toDouble y
 
 parseDigital :: Parser LispVal
 parseDigital = many1 digit >>= return . Number . read
@@ -85,6 +106,9 @@ parseQuoted = do char '\''
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
         <|> parseString
+        <|> try parseComplex
+        <|> try parseRatio
+        <|> try parseReal
         <|> try parseNumber
         <|> try parseBool
         <|> try parseCharacter

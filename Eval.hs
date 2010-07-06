@@ -41,6 +41,9 @@ eqvLst' [] arg2 = False
 eval :: Env -> LispVal -> IOThrowsError LispVal
 eval env val@(String _)     = return val
 eval env val@(Number _)     = return val
+eval env val@(Ratio _ _)    = return val
+eval env val@(Real _)       = return val
+eval env val@(Complex _)    = return val
 eval env val@(Bool _ )      = return val
 eval env val@(Character _ ) = return val
 eval env (Atom id)          = getVar env id

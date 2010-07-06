@@ -1,39 +1,7 @@
-module Environment (LispVal(Atom,
-                           List,
-                           DottedList,
-                           Number,
-                           String,
-                           Bool,
-                           Character,
-                           PrimitiveFunc,
-                           Port,
-                           IOFunc,
-                           Func),
-                   LispError(NumArgs,
-                             TypeMismatch,
-                             Parser,
-                             BadSpecialForm,
-                             NotFunction,
-                             UnboundVar,
-                             IO,
-                             Default),
-                   ThrowsError,
-                   trapError,
-                   extractValue,
-                   unwordsLispList,
-                   Env,
-                   IOThrowsError,
-                   liftThrows,
-                   runIOThrows,
-                   runIOThrows_,
-                   nullEnv,
-                   isBound,
-                   getVar,
-                   setVar,
-                   defineVar,
-                   bindVars) where
+module Environment where
 
 import IO
+import Complex
 import Text.ParserCombinators.Parsec
 import Data.IORef
 import Control.Monad.Error
@@ -42,6 +10,9 @@ data LispVal = Atom String
              | List [LispVal]
              | DottedList [LispVal] LispVal
              | Number Integer
+             | Ratio Integer Integer
+             | Real Double
+             | Complex (Complex Double)
              | String String
              | Bool Bool
              | Character Char
@@ -62,14 +33,18 @@ showLispVal :: LispVal -> String
 showLispVal (String contents)      = "\"" ++ contents ++ "\""
 showLispVal (Atom name)            = name
 showLispVal (Number value)         = show value
+showLispVal (Ratio num dem)        = (show num) ++ "/" ++ (show dem)
+showLispVal (Real value)           = show value
+showLispVal (Complex cmpx)         = show cmpx
 showLispVal (Bool True)            = "#t"
 showLispVal (Bool False)           = "#f"
 showLispVal (Character char)       = [char]
 showLispVal (List contents)        = "(" ++ unwordsLispList contents ++ ")"
 showLispVal (DottedList head tail) = "(" ++ unwordsLispList head ++ " . " ++ showLispVal tail ++ ")"
-showLispVal (PrimitiveFunc _)      = "<primitive>"
-showLispVal (Port _)               = "<IO port>"
-showLispVal (IOFunc _)             = "<IO primitive>"
+showLispVal (PrimitiveFunc _)      = "#<primitive:" ++ n ++ ">"
+                                     where n = ""
+showLispVal (Port _)               = "#<IO port>"
+showLispVal (IOFunc _)             = "#<IO primitive>"
 showLispVal (Func params varargs _ _) =
     "(lambda (" ++ unwords (map show params) ++
     (case varargs of
