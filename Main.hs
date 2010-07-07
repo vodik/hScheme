@@ -17,15 +17,20 @@ newSourceView = do
          Nothing     -> exitFailure
          (Just lang) -> sourceBufferNewWithLanguage lang >>= return
 
+runCode :: SourceView -> IO ()
+runCode sourceView = do
+    textBuffer <- textViewGetBuffer sourceView
+    sI <- textBufferGetStartIter textBuffer
+    eI <- textBufferGetEndIter textBuffer
+    textBufferGetText textBuffer sI eI True >>= runScript
+
 startGUI :: IO ()
 startGUI = do
     initGUI
     builder <- builderNew
     builderAddFromFile builder "scheme.ui"
 
-    window <- builderGetObject builder castToWindow "window1"
-    window `onDestroy` mainQuit
-
+    window     <- builderGetObject builder castToWindow "window1"
     scrwin     <- builderGetObject builder castToScrolledWindow "scrolledwindow1"
     sourceView <- newSourceView >>= sourceViewNewWithBuffer
     srcfont    <- fontDescriptionFromString "Monospace 10"
@@ -33,9 +38,18 @@ startGUI = do
     widgetModifyFont sourceView (Just srcfont)
     set sourceView [sourceViewHighlightCurrentLine := True,
                     sourceViewShowLineNumbers := True,
-                    sourceViewAutoIndent := True]
+                    sourceViewAutoIndent := True,
+                    sourceViewTabWidth := 4,
+                    sourceViewInsertSpacesInsteadOfTabs := True]
     scrolledWindowAddWithViewport scrwin sourceView
 
+    exia <- builderGetObject builder castToAction "EXIA"
+    exia `onActionActivate` widgetDestroy window
+
+    exca <- builderGetObject builder castToAction "EXCA"
+    exca `onActionActivate` runCode sourceView
+
+    window `onDestroy` mainQuit
     widgetShowAll window
     mainGUI
 
