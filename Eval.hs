@@ -46,16 +46,10 @@ eval env val@(Real _)       = return val
 eval env val@(Complex _)    = return val
 eval env val@(Bool _ )      = return val
 eval env val@(Character _ ) = return val
+eval env val@(Void)         = return val
 eval env (Atom id)          = getVar env id
 
 eval env (List [Atom "quote", val]) = return val
-
-eval env (List [Atom "if", pred, conseq, alt]) = do
-    result <- eval env pred
-    case result of
-         Bool False -> eval env alt
-         Bool True  -> eval env conseq
-         otherwise  -> throwError $ TypeMismatch "boolean" pred
 
 eval env (List [Atom "set!", Atom var, form]) =
     eval env form >>= setVar env var
@@ -70,6 +64,18 @@ eval env (List (Atom "begin" : expr : rest)) = do
     eval' expr rest
     where eval' expr (x : xs) = eval env expr >> eval' x xs
           eval' expr []       = eval env expr >>= return
+
+eval env (List (Atom "if" : expr : rest)) = do
+    eval env expr >>= evalIf rest
+    where evalIf [conseq, alt] (Bool result) = do
+              case result of
+                   True  -> eval env conseq
+                   False -> eval env alt
+          evalIf [conseq] (Bool result) = do
+              case result of
+                   True  -> eval env conseq
+                   False -> return Void
+          evalIf _ notBool = throwError $ TypeMismatch "boolean" notBool
 
 eval env (List (Atom "cond" : expr : rest)) =
     eval' expr rest

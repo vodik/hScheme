@@ -25,6 +25,7 @@ data LispVal = Atom String
                      varargs :: (Maybe String),
                      body    :: [LispVal],
                      closure :: Env}
+             | Void
 
 instance Show LispVal where show = showLispVal
 
@@ -52,6 +53,7 @@ showLispVal (Func params varargs _ _) =
     (case varargs of
           Nothing     -> ""
           Just params -> " . " ++ params) ++ ") ...)"
+showLispVal (Void)                 = "#<void>"
 
 data LispError = NumArgs Integer [LispVal]
                | TypeMismatch String LispVal
